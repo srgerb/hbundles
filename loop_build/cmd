@@ -1,0 +1,9 @@
+#!/bin/bash
+#SBATCH -p medium
+#SBATCH --mem=8g
+#SBATCH -o cmd.log
+
+set -x
+INPUT=$1
+/home/fordas/.conda/envs/fordas_structure_store/bin/rosetta_scripts -parser:protocol segment_lookup.xml -s $INPUT -overwrite -beta_nov16
+bash remove_clashed_and_brokenchain.sh

@@ -1,0 +1,17 @@
+<ROSETTASCRIPTS>
+  <RESIDUE_SELECTORS>
+    <PrimarySequenceNeighborhood name="lookup_segment_span">
+      <StoredResidueSubset subset_name="inserted_lookup_segment" />
+    </PrimarySequenceNeighborhood>
+  </RESIDUE_SELECTORS>
+  <MOVERS>
+    <SegmentSequenceProfileMover
+      name="lookup_segment_profile"
+      structure_store="/home/fordas/databases/vall.h5"
+      residue_selector="lookup_segment_span"
+      output_pssm_inline ="segment_profile" rmsd_tolerance="1.25" />
+  </MOVERS>
+  <PROTOCOLS>
+    <Add mover="lookup_segment_profile" />
+  </PROTOCOLS>
+</ROSETTASCRIPTS>

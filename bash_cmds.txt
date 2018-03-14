@@ -1,0 +1,10 @@
+basename:
+$1=filename
+$2=suffix to remove
+file=$(basename $1 $2)
+
+rename
+$1=old_name
+$2=new_name
+$3=file(s) to rename
+rename "s/$1/$2/g" $3

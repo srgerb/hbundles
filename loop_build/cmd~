@@ -1,0 +1,8 @@
+#!/bin/bash
+#SBATCH -p medium
+#SBATCH --mem=8g
+#SBATCH -o cmd.log
+
+set -x
+
+/home/fordas/.conda/envs/fordas_structure_store/bin/rosetta_scripts -parser:protocol segment_lookup.xml -s GJR_pd1_short_des918.excised.pdb -overwrite -beta_nov16

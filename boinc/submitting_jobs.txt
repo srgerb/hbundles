@@ -1,0 +1,19 @@
+1. make fragments (of your monomer) is now at 
+
+/projects/boinc/bin/make_fragments.py (-pdbs [pdbs] | -pdbs_folder [directory of pdbs]
+
+2. run this from command line:
+
+for i in *fragments;do cd $i;ln -s 00001.200.9mers $i ;ln -s 00001.200.3mers $i ;cd ..;done
+
+3. then, prepare fold and dock at
+
+/projects/boinc/bin/prepare_fold_and_dock.py -nj_relax [jobs] -nj_abinitio [jobs] -symm_file [symmetry file] [job name, more than 8 chars] [path to multimer (e.g. ../multimers/name.pdb)]
+
+3.5. test scripts are at 
+
+/projects/boinc/bin/run_test_rah.pl run.fold_and_dock.job
+
+4. submit from the new digs using
+
+/projects/boinc/bin/boinc_submit run.fold_and_dock.job

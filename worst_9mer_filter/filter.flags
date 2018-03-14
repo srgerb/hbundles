@@ -1,0 +1,3 @@
+-beta
+-parser:protocol worst9mer_filter.xml
+-indexed_structure_store:fragment_store /home/brunette/DBs/hdf5/ss_grouped_vall_helix_shortLoop.h5
