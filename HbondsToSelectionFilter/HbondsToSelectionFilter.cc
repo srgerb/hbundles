@@ -8,9 +8,10 @@
 // (c) addressed to University of Washington CoMotion, email: license@uw.edu.
 
 /// @file protocols/protein_interface_design/filters/HbondsToSelectionFilter.cc
-/// @brief Takes in a residue selector and filters based on total or average number of hbonds to that selector. taken largely from HbondsToResidueFilter
-/// @author Stacey Gerben (srgerb@uw.edu), Baker lab
-/// @author Refactored considerably by Vikram K. Mulligan (vmullig@uw.edu), Baker laboratory.
+/// @brief Takes in a residue selector and filters based on total or average number of hbonds to that selector.
+/// Most of this was taken from HbondsToResidueFilter, written by Sarel Fleishman (sarelf@u.washington.edu),
+/// Jacob Corn (jecorn@u.washington.edu), and refactored by Vikram K. Mulligan (vmullig@uw.edu)
+/// @author Stacey Gerben (srgerb@uw.edu)
 
 #include <protocols/protein_interface_design/filters/HbondsToSelectionFilter.hh>
 #include <protocols/protein_interface_design/filters/HbondsToSelectionFilterCreator.hh>
@@ -100,7 +101,6 @@ using core::pose::Pose;
 ///
 HbondsToSelectionFilter::HbondsToSelectionFilter() :
 	Filter( "HbondsToSelection" ),
-	resnum(),
   selector_(),
 	partners_(0),
 	energy_cutoff_(0.0),
@@ -299,7 +299,7 @@ void
 HbondsToSelectionFilter::set_from_selector(
   core::select::residue_selector::ResidueSelectorCOP from_selector_in
 ) {
-  if ( selector_in ) {
+  if ( from_selector_in ) {
     from_selector_ = from_selector_in;
   } else {
     utility_exit_with_message("Error in protocols::protein_interface_design::filters::HbondsToSelectionFilter::set_selecto(): Null pointer passed to function!");

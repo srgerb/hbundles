@@ -8,9 +8,10 @@
 // (c) addressed to University of Washington CoMotion, email: license@uw.edu.
 
 /// @file protocols/protein_interface_design/filters/HbondsToSelectionFilter.hh
-/// @brief definition of filter classes for iterations of docking/design.
-/// @author Sarel Fleishman (sarelf@u.washington.edu), Jacob Corn (jecorn@u.washington.edu)
-/// @author Refactored considerably by Vikram K. Mulligan (vmullig@uw.edu), Baker laboratory.
+/// @brief definition of filter classes for iterations of docking/design. 
+/// Most of this was taken from HbondsToResidueFilter, written by Sarel Fleishman (sarelf@u.washington.edu),
+/// Jacob Corn (jecorn@u.washington.edu), and refactored by Vikram K. Mulligan (vmullig@uw.edu)
+/// @author Stacey Gerben (srgerb@uw.edu) 
 
 #ifndef INCLUDED_protocols_protein_interface_design_filters_HbondsToSelectionFilter_hh
 #define INCLUDED_protocols_protein_interface_design_filters_HbondsToSelectionFilter_hh
@@ -172,11 +173,16 @@ public :
 	/// @brief Set the scorefunction to use for hbond calculation.
 	///
 	void set_scorefxn( core::scoring::ScoreFunctionCOP sfxn_in);
+  
+  /// @brief Set the main ResidueSelector to use.
+  /// @details Sets the residue set of interest that will be filtered
+  void
+  HbondsToSelectionFilter::set_selector(core::select::residue_selector::ResidueSelectorCOP selector_in);
 
-	/// @brief Set the ResidueSelector to use.
-	/// @details Only hydrogen bonds between this residue and the residues selected by the ResidueSelector will be counted,
-	/// if a ResidueSelector is provided.
-	void set_selector( core::select::residue_selector::ResidueSelectorCOP selector_in );
+	/// @brief Set the ResidueSelector to compare to.
+  /// @details Only hydrogen bonds from the residues selected by this ResidueSelector to the original residue selector
+  /// will be counted,if a ResidueSelector is provided.
+	void set_from_selector( core::select::residue_selector::ResidueSelectorCOP from_selector_in );
 
 	std::string
 	name() const override;
