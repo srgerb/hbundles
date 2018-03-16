@@ -58,7 +58,8 @@ public :
 	/// @brief Constructor
 	///
 	HbondsToSelectionFilter(
-		utility::vector1< HBondResStructCOP > residues;
+		core::select::residue_selector::ResidueSelectorCOP const main_selector;
+		core::select::residue_selector::ResidueSubset main_selection;
 		Size const partners,
 		Real const &energy_cutoff=-0.5,
 		bool const backbone=false,
@@ -84,10 +85,16 @@ public :
 	void report( std::ostream & out, core::pose::Pose const & pose ) const override;
 	core::Real report_sm( core::pose::Pose const & pose ) const override;
 
+  /// @brief Compute the averate number of hydrogen bonds to residues in the selection
+  ///
+  core::Real compute_average( core::pose::Pose const & pose, core::select::residue_selector::ResidueSubset filter_selection) const;
+	
 	/// @brief Actually compute the number of hydrogen bonds to the target residue.
 	///
-	core::Size compute( core::pose::Pose const & pose, core::Size const resnum_rosetta ) const;
+	core::Size compute_single( core::pose::Pose const & pose, core::Size const resnum_rosetta ) const;
+
 	virtual ~HbondsToSelectionFilter();
+
 	void parse_my_tag( utility::tag::TagCOP tag, basic::datacache::DataMap &, protocols::filters::Filters_map const &, protocols::moves::Movers_map const &, core::pose::Pose const & ) override;
 
 	/// @brief Set the minimum number of H-bond partners that this residue must have for the filter to pass.
@@ -174,10 +181,10 @@ public :
 	///
 	void set_scorefxn( core::scoring::ScoreFunctionCOP sfxn_in);
   
-  /// @brief Set the main ResidueSelector to use.
+  /// @brief Set the main Residue_selector to use.
   /// @details Sets the residue set of interest that will be filtered
   void
-  HbondsToSelectionFilter::set_selector(core::select::residue_selector::ResidueSelectorCOP selector_in);
+  HbondsToSelectionFilter::set_main_selector(core::select::residue_selector::ResidueSelectorCOP main_selector_in);
 
 	/// @brief Set the ResidueSelector to compare to.
   /// @details Only hydrogen bonds from the residues selected by this ResidueSelector to the original residue selector
@@ -198,10 +205,13 @@ public :
 
 private:
 
-	/// @brief The current selector of residues to be filtered.
+	/// @brief The current main_selector of residues to be filtered.
 	///
-	core::select::residue_selector::ResidueSelectorCOP residue_selector_;
-
+	core::select::residue_selector::ResidueSelectorCOP main_selector_;
+	
+	/// @brief The residue selector applied to current pose.
+  ///
+	core::select::residue_selector::ResidueSubset main_selection_( pose.size(), true )
 	/// @brief The minimum number of H-bond partners that this residue must have for the filter to pass.
 	///
 	Size partners_;

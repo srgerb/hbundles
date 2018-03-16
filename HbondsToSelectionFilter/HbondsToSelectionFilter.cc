@@ -101,7 +101,7 @@ using core::pose::Pose;
 ///
 HbondsToSelectionFilter::HbondsToSelectionFilter() :
 	Filter( "HbondsToSelection" ),
-  selector_(),
+  main_selector_(),
 	partners_(0),
 	energy_cutoff_(0.0),
 	backbone_(true),
@@ -116,7 +116,7 @@ HbondsToSelectionFilter::HbondsToSelectionFilter() :
 /// @brief Constructor
 ///
 HbondsToSelectionFilter::HbondsToSelectionFilter(
-	Size const resnum,
+	core::select::residue_selector::ResidueSelectorCOP const main_selector;,
 	Size const partners,
 	Real const &energy_cutoff,
 	bool const backbone,
@@ -126,7 +126,7 @@ HbondsToSelectionFilter::HbondsToSelectionFilter(
 	bool const from_same_chain
 ) :
 	Filter( "HbondsToSelection" ),
-	resnum_(""),
+	main_selector_(main_selector),
 	partners_(partners),
 	energy_cutoff_(energy_cutoff),
 	backbone_(backbone),
@@ -135,12 +135,9 @@ HbondsToSelectionFilter::HbondsToSelectionFilter(
 	from_other_chains_(from_other_chains),
 	from_same_chain_(from_same_chain),
 	sfxn_(),
-	selector_()
+	from_selector_()
 {
-	std::stringstream resnumstr;
-	resnumstr << resnum;
-	resnum_ = resnumstr.str();
-
+  main_selection_ = main_selector_->apply( pose );
 	runtime_assert( energy_cutoff_ <= 0 );
 }
 
@@ -148,7 +145,7 @@ HbondsToSelectionFilter::HbondsToSelectionFilter(
 ///
 HbondsToSelectionFilter::HbondsToSelectionFilter( HbondsToSelectionFilter const &src ) :
 	Filter( "HbondsToSelection" ),
-	resnum_(src.resnum_),
+	main_selector_(src.main_selector_),
 	partners_(src.partners_),
 	energy_cutoff_(src.energy_cutoff_),
 	backbone_(src.backbone_),
@@ -157,7 +154,7 @@ HbondsToSelectionFilter::HbondsToSelectionFilter( HbondsToSelectionFilter const 
 	from_other_chains_(src.from_other_chains_),
 	from_same_chain_(src.from_same_chain_),
 	sfxn_(),
-	selector_( src.selector_ ) //Copy the owning pointer; don't clone.
+	from_selector_( src.from_selector_ ) //Copy the owning pointer; don't clone.
 {
 	if ( src.sfxn_ ) {
 		sfxn_ = src.sfxn_->clone();
@@ -166,7 +163,8 @@ HbondsToSelectionFilter::HbondsToSelectionFilter( HbondsToSelectionFilter const 
 
 bool
 HbondsToSelectionFilter::apply( Pose const & pose ) const {
-	core::Size const resnum_rosetta( core::pose::parse_resnum( resnum_, pose, true ) ); //sets resnum_rosetta equal to the residue number inputed under "residue" flag
+	
+	core::Size const resnum_rosetta( core::pose::parse_resnum( resnum, pose, true ) ); //sets resnum_rosetta equal to the residue number inputed under "residue" flag
 	core::Size hbonded_res( compute( pose, resnum_rosetta ) ); //Number of hbonded residues
 	if ( TR.visible() ) TR<<"found "<<hbonded_res<< " hbond to target residue " << resnum_rosetta;
 	if ( hbonded_res >= partners_ ) {
@@ -234,8 +232,13 @@ HbondsToSelectionFilter::report_sm( core::pose::Pose const & pose ) const {
 	return( hbonded_res );
 }
 
+core::Real 
+HbondsToSelectionFilter::compute_average( core::pose::Pose const & pose, core::select::residue_selector::ResidueSubset filter_selection) const {
+	
+}
+
 core::Size
-HbondsToSelectionFilter::compute( Pose const & pose, core::Size const resnum_rosetta ) const {
+HbondsToSelectionFilter::compute_single( Pose const & pose, core::Size const resnum_rosetta ) const {
 	using core::Size;
 
 	core::pose::Pose temp_pose( pose );
@@ -248,9 +251,9 @@ HbondsToSelectionFilter::compute( Pose const & pose, core::Size const resnum_ros
 	/// Now handled automatically.  scorefxn->accumulate_residue_total_energies( temp_pose );
 
 	//Get the ResidueSubset that could form hydrogen bonds with this residue:
-	core::select::residue_selector::ResidueSubset selection( pose.size(), true );
+	core::select::residue_selector::ResidueSubset from_selection( pose.size(), true );
 	if ( from_selector_ ) {
-		from_selection = selector_->apply( pose );
+		from_selection = from_selector_->apply( pose );
 	}
 
 	std::set<Size> binders;
@@ -282,10 +285,10 @@ HbondsToSelectionFilter::set_scorefxn( core::scoring::ScoreFunctionCOP sfxn_in) 
 /// @details Sets the residue set of interest that will be filtered
 void
 HbondsToSelectionFilter::set_selector(
-	core::select::residue_selector::ResidueSelectorCOP selector_in
+	core::select::residue_selector::ResidueSelectorCOP main_selector_in
 ) {
-	if ( selector_in ) {
-		selector_ = selector_in;
+	if ( main_selector_in ) {
+		main_selector_ = main_selector_in;
 	} else {
 		utility_exit_with_message("Error in protocols::protein_interface_design::filters::HbondsToSelectionFilter::set_selector(): Null pointer passed to function!");
 	}
