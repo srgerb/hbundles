@@ -210,7 +210,7 @@ private:
 	
 	/// @brief The residue selector applied to current pose.
   ///
-	core::select::residue_selector::ResidueSubset main_selection_( pose.size(), true )
+	core::select::residue_selector::ResidueSubset main_selection_;
 	/// @brief The minimum number of H-bond partners that this residue must have for the filter to pass.
 	///
 	Size partners_;

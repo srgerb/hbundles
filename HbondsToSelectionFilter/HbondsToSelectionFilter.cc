@@ -165,21 +165,34 @@ HbondsToSelectionFilter::HbondsToSelectionFilter( HbondsToSelectionFilter const 
 
 bool
 HbondsToSelectionFilter::apply( Pose const & pose ) const {
-	
-	core::Size const resnum_rosetta( core::pose::parse_resnum( resnum, pose, true ) ); //sets resnum_rosetta equal to the residue number inputed under "residue" flag
-	core::Size hbonded_res( compute( pose, resnum_rosetta ) ); //Number of hbonded residues
-	if ( TR.visible() ) TR<<"found "<<hbonded_res<< " hbond to target residue " << resnum_rosetta;
+	core::Real avg_hbonds_to_selection( compute_average( pose, main_selection ) ); //Average number of hydrogen bonds to the main selection
+	if ( TR.visible() ) TR<<"found an average of "<< avg_hbonds << " hbonds";
 	if ( hbonded_res >= partners_ ) {
 		if ( TR.visible() ) TR << ". passing." << std::endl;
 		return( true );
-	} else {
+	} 
+	else {
 		if ( TR.visible() ) TR << ". failing." << std::endl;
 		return( false );
 	}
 }
 core::Real
-HbondsToSelectionFilter::compute_average( core::pose::Pose const & pose, core::select::residue_selector::ResidueSubset filter_selection) const {
-
+HbondsToSelectionFilter::compute_average( core::pose::Pose const & pose, core::select::residue_selector::ResidueSubset main_selection) const {
+	using core::Size
+	Size resnum; //current residue that the number of hydrogen bonds is being computed for. will be taken from main residue selectori
+	Size hbond_to_res; //Number of hydrogen bonds to current residue in interator
+	Size total_residues_in_selection = 0; //number of residues in the main residue selector. Will be used to average number of hbonds/residue
+	Size total_hbond_number = 0; //total number of hydrogen bonds going to main selection. These may be coming from ouside or INSIDE the selection.
+	for ( Size i=1, imax=pose.size(); i<=imax; ++i ) {
+    if ( main_selection[i] ){
+			resnum = core::pose::parse_resnum( i, pose, true );
+			++total_residues_in_selection; //is there an easier way to get a count of residues in a selector?
+			
+  	}
+		runtime_assert_string_msg( total_residues_in_selection == 0), "Error in HbondsToResidueFilter::parse_my_tag():  No residues foind in main selection" );	//make sure we aren't dividing by zero
+		core::Real average_hbonds( total_hbond_number/total_residues_in_selection );//this step is probably unnecessary, but I can't remember
+		if ( TR.visible() ) TR<<"found "<< total_hbond_number << " hbonds to " << total_residues_in_selection << " residues" << std::endl;
+		return average_hbonds;
 }
 
 core::Size
@@ -209,8 +222,8 @@ HbondsToSelectionFilter::compute_single( Pose const & pose, core::Size const res
     if ( pose.chain(i) != pose.chain(resnum_rosetta) && !from_other_chains() ) continue; //Skip hbonds from different chains if the from_other_chain option is not set.
     binders.insert( i );
   }
-  std::list< Size> hbonded_res( hbonded( temp_pose, resnum_rosetta, binders, backbone_, sidechain_, energy_cutoff_, bb_bb_, scorefxn) );
-
+  std::list< Size> hbonded_res( hbonded( temp_pose, resnum_rosetta, binders, backbone_, sidechain_, energy_cutoff_, bb_bb_, scorefxn) ); //where does hbonded live? how is this magically getting called?
+	if ( TR.visible() ) TR<<"found "<<hbonded_res.size()<< " hbond to target residue " << resnum_rosetta << std::endl;
   return( hbonded_res.size() );
 }
 void
@@ -324,12 +337,12 @@ void HbondsToSelectionFilter::provide_xml_schema( utility::tag::XMLSchemaDefinit
 {
 	using namespace utility::tag;
 	AttributeList attlist;
-	attlist + XMLSchemaAttribute( "partners", xsct_non_negative_integer, "H-bonding partner threshold for passing" )
+	attlist + XMLSchemaAttribute( "partners", xsct_non_negative_integer, "Average number of H-bonding partners needed for passing" )
 		+ XMLSchemaAttribute::attribute_w_default( "energy_cutoff", xsct_real, "Energy below which a H-bond counts", "-0.5" )
 		+ XMLSchemaAttribute::attribute_w_default( "bb_bb", xsct_rosetta_bool, "Count backbone-backbone H-bonds", "0" )
 		+ XMLSchemaAttribute::attribute_w_default( "backbone", xsct_rosetta_bool, "Count backbone H-bonds", "0" )
 		+ XMLSchemaAttribute::attribute_w_default( "sidechain", xsct_rosetta_bool, "Count sidechain H-bonds", "1" )
-		+ XMLSchemaAttribute( "residue_selector", xsct_refpose_enabled_residue_number, "Particular residue set of interest" );
+		+ XMLSchemaAttribute( "residue_selector", xsct_refpose_enabled_residue_number, "Second residue set. If given, will only compare HBonds between the primary selector and this selector." );
 
 	rosetta_scripts::attributes_for_parse_score_function( attlist );
 	core::select::residue_selector::attributes_for_parse_residue_selector( attlist );
