@@ -59,7 +59,6 @@ public :
 	///
 	HbondsToSelectionFilter(
 		core::select::residue_selector::ResidueSelectorCOP const main_selector;
-		core::select::residue_selector::ResidueSubset main_selection;
 		Size const partners,
 		Real const &energy_cutoff=-0.5,
 		bool const backbone=false,

@@ -110,7 +110,8 @@ HbondsToSelectionFilter::HbondsToSelectionFilter() :
 	from_other_chains_(true),
 	from_same_chain_(true),
   from_selector(),
-	sfxn_()
+	sfxn_(),
+  main_selection_
 {}
 
 /// @brief Constructor
@@ -135,7 +136,8 @@ HbondsToSelectionFilter::HbondsToSelectionFilter(
 	from_other_chains_(from_other_chains),
 	from_same_chain_(from_same_chain),
 	sfxn_(),
-	from_selector_()
+	from_selector_(),
+  main_selection_
 {
   main_selection_ = main_selector_->apply( pose );
 	runtime_assert( energy_cutoff_ <= 0 );
@@ -175,7 +177,42 @@ HbondsToSelectionFilter::apply( Pose const & pose ) const {
 		return( false );
 	}
 }
+core::Real
+HbondsToSelectionFilter::compute_average( core::pose::Pose const & pose, core::select::residue_selector::ResidueSubset filter_selection) const {
 
+}
+
+core::Size
+HbondsToSelectionFilter::compute_single( Pose const & pose, core::Size const resnum_rosetta ) const {
+  using core::Size;
+
+  core::pose::Pose temp_pose( pose );
+  core::scoring::ScoreFunctionOP scorefxn( sfxn_ );
+  if ( !scorefxn ) {
+    TR << "No scorefunction loaded.  Getting global default scorefunction." << std::endl; //DELETE ME.
+    scorefxn=get_score_function();
+  }
+  (*scorefxn)(temp_pose);
+  /// Now handled automatically.  scorefxn->accumulate_residue_total_energies( temp_pose );
+
+  //Get the ResidueSubset that could form hydrogen bonds with this residue:
+  core::select::residue_selector::ResidueSubset from_selection( pose.size(), true );
+  if ( from_selector_ ) {
+    from_selection = from_selector_->apply( pose );
+  }
+
+  std::set<Size> binders;
+  for ( Size i=1, imax=pose.size(); i<=imax; ++i ) {
+    if ( i == resnum_rosetta ) continue; //Don't consider hbonds of this residue to itself.
+    if ( !from_selection[i] ) continue; //Don't consider hbonds to residues that aren't selected by the ResidueSelector (if used).  Note that the selection vector is all true if no ResidueSelector is provided.
+    if ( pose.chain(i) == pose.chain(resnum_rosetta) && !from_same_chain() ) continue; //Skip hbonds from same chain if the from_same_chain option is not set.
+    if ( pose.chain(i) != pose.chain(resnum_rosetta) && !from_other_chains() ) continue; //Skip hbonds from different chains if the from_other_chain option is not set.
+    binders.insert( i );
+  }
+  std::list< Size> hbonded_res( hbonded( temp_pose, resnum_rosetta, binders, backbone_, sidechain_, energy_cutoff_, bb_bb_, scorefxn) );
+
+  return( hbonded_res.size() );
+}
 void
 HbondsToSelectionFilter::parse_my_tag(
 	utility::tag::TagCOP tag,
@@ -230,43 +267,6 @@ core::Real
 HbondsToSelectionFilter::report_sm( core::pose::Pose const & pose ) const {
 	core::Size hbonded_res( compute( pose, core::pose::parse_resnum(resnum(), pose, true) ) );
 	return( hbonded_res );
-}
-
-core::Real 
-HbondsToSelectionFilter::compute_average( core::pose::Pose const & pose, core::select::residue_selector::ResidueSubset filter_selection) const {
-	
-}
-
-core::Size
-HbondsToSelectionFilter::compute_single( Pose const & pose, core::Size const resnum_rosetta ) const {
-	using core::Size;
-
-	core::pose::Pose temp_pose( pose );
-	core::scoring::ScoreFunctionOP scorefxn( sfxn_ );
-	if ( !scorefxn ) {
-		TR << "No scorefunction loaded.  Getting global default scorefunction." << std::endl; //DELETE ME.
-		scorefxn=get_score_function();
-	}
-	(*scorefxn)(temp_pose);
-	/// Now handled automatically.  scorefxn->accumulate_residue_total_energies( temp_pose );
-
-	//Get the ResidueSubset that could form hydrogen bonds with this residue:
-	core::select::residue_selector::ResidueSubset from_selection( pose.size(), true );
-	if ( from_selector_ ) {
-		from_selection = from_selector_->apply( pose );
-	}
-
-	std::set<Size> binders;
-	for ( Size i=1, imax=pose.size(); i<=imax; ++i ) {
-		if ( i == resnum_rosetta ) continue; //Don't consider hbonds of this residue to itself.
-		if ( !from_selection[i] ) continue; //Don't consider hbonds to residues that aren't selected by the ResidueSelector (if used).  Note that the selection vector is all true if no ResidueSelector is provided.
-		if ( pose.chain(i) == pose.chain(resnum_rosetta) && !from_same_chain() ) continue; //Skip hbonds from same chain if the from_same_chain option is not set.
-		if ( pose.chain(i) != pose.chain(resnum_rosetta) && !from_other_chains() ) continue; //Skip hbonds from different chains if the from_other_chain option is not set.
-		binders.insert( i );
-	}
-	std::list< Size> hbonded_res( hbonded( temp_pose, resnum_rosetta, binders, backbone_, sidechain_, energy_cutoff_, bb_bb_, scorefxn) );
-
-	return( hbonded_res.size() );
 }
 
 /// @brief Set the scorefunction to use for hbond calculation.
