@@ -35,3 +35,11 @@ source /software/rosetta/setup.sh
 
 extract pdbs:
 extract_pdbs -in:file:silent_struct_type binary -in:file:fullatom -fail_on_bad_hbond false -silent_read_through_errors -in:file:tags specific_decoy_tag -in:file:silent silent_file_example.out
+
+while read line; do /software/rosetta/latest/bin/extract_pdbs -in:file:silent_struct_type binary -in:file:fullatom -fail_on_bad_hbond false -silent_read_through_errors -in:file:tags $line -in:file:silent ../output/sg180508_54_remodel_11_3_8_576250_0.out < names.dat
+
+rescore silent file:
+/software/rosetta/latest/bin/score_jd2.hdf5.linuxgccrelease -beta 1 -in:file:silent_struct_type binary -symmetry:symmetry_definition /home/srgerb/hBundles/SymFiles/C4_Z.sym -out:file:score_only "$i".sc -in:file:silent $i
+
+create commands for plot_ff.py
+for i in {669881..669975}; do echo "python plot_ff.py" | tr -d "\r\n"; for j in output/rescored/*"$i"*; do echo " $j"| tr -d "\r\n"; done; echo ""; done>plot.sh

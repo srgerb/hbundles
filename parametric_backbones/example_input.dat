@@ -1,0 +1,26 @@
+prefix		     # base name of output structures
+2                # number of helices
+A B              # chains the helices belong to
+0 1              # number of chains (zero indexed)
+36           # number of residues of first helix 
+10               # number of residues of first segment of first helix 
+15              # number of linker residues between segments 
+0 0 1	      # supercoil twist of first segment
+0 0 1	      # supercoil twist of 2nd segment 
+7.8 20 1	       # supercoil radius of first segment
+7.8 7.8 1	            # supercoil radius of second segment (if -1, this param is constrained to supercoil radius of first segment of first helix)
+0 0 1	            # supercoil phase
+1	                # orientation of helix (1=up, -1=down)
+60 60 1      # helix phase of first segment
+33.89 33.89 1        # z-axis offset 
+33               # number of residues of second helix 
+10               # number of residues of first segment of second helix 
+15               # number of linker residues between segments 
+0 0 1		# supercoil twist of first segment 
+0 0 1  # supercoil twist of 2nd segment
+15 15 1        # supercoil radius of first segment
+15 15 1        # supercoil radius of second segment
+45 45 1        # supercoil phase
+-1 	              # orientation of helix (1=up, -1=down)
+37.78 37.78 1	            # helix phase of first segment
+31.39 31.39 1	        # z-axis offset 

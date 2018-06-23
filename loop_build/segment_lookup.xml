@@ -11,12 +11,12 @@
     
     </FILTERS>
     <MOVERS>
-        <DirectSegmentLookupMover name="segment_lookup" rmsd_tolerance="0.75"  structure_store="/home/fordas/databases/vall.h5" stored_subset_name="inserted_lookup_segment" max_insertion_length="10"/>
+        <DirectSegmentLookupMover name="segment_lookup" rmsd_tolerance="0.75"  structure_store="/home/fordas/databases/vall.h5" stored_subset_name="inserted_lookup_segment" max_insertion_length="6"/>
         <MultiplePoseMover name="minimize_segment">
-            <xi:include href="minimize_segment.xml" />
+            <xi:include href="/home/srgerb/scripts/loop_build/minimize_segment.xml" />
         </MultiplePoseMover>
         <MultiplePoseMover name="profile_segment">
-            <xi:include href="profile_segment.xml" />
+            <xi:include href="/home/srgerb/scripts/loop_build/profile_segment.xml" />
         </MultiplePoseMover>
     </MOVERS>
     <APPLY_TO_POSE>
