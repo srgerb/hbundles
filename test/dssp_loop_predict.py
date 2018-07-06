@@ -6,6 +6,7 @@ matplotlib.use('Agg')
 import seaborn as sns
 import matplotlib.pyplot as plt
 from pylab import savefig
+import re
 
 def clean_file_name(input_file):
     tag= ""
@@ -17,16 +18,8 @@ def clean_file_name(input_file):
             tag = ""
     return tag
 
-def get_dssp(pdb_file):
-    import pyrosetta 
-    pyrosetta.init('-out:file:output_virtual true')
-    pose = pyrosetta.pose_from_file(pdb_file)
-    struct_from_pose = pyrosetta.rosetta.core.scoring.dssp.Dssp(pose)
-    dssp_secstruct =struct_from_pose.get_dssp_secstruct()
-    print(dssp_secstruct)
-    return dssp_secstruct
-
-#make a list of tuples with start and end of each loop
+#make a list of tuples with start and end of each loop 
+#for single heatmap
 def get_loops(dssp_secstruct):
     in_loop = False
     structure = False
@@ -53,6 +46,7 @@ def get_loops(dssp_secstruct):
     return loops
 
 #make a single list of all the residues
+#for single heatmap
 def get_all_res(loops):
     all_res = {}
     for loopset in loops:
@@ -60,7 +54,8 @@ def get_all_res(loops):
             all_res[i] = {"A":0,"C":0,"D":0,"E":0,"F":0,"G":0,"H":0,"I":0,"K":0,"L":0,"M":0,"N":0,"P":0,"Q":0,"R":0,"S":0,"T":0,"V":0,"W":0,"Y":0}
     return all_res
 
-
+#iterate through fasta file and count residues in loops
+#for single heatmap
 def compare(fasta_name,all_res, loops):
     fasta = open(fasta_name, "r")
     for line in fasta.readlines():
@@ -71,48 +66,137 @@ def compare(fasta_name,all_res, loops):
                     if residue in all_res[i]:
                         all_res[i][residue] += 1
     for loopset in loops:
-        all_res[loopset[1] + 2] = {"A":1000,"C":1000,"D":1000,"E":1000,"F":1000,"G":1000,"H":1000,"I":1000,"K":1000,"L":1000,"M":1000,"N":1000,"P":1000,"Q":1000,"R":1000,"S":1000,"T":1000,"V":1000,"W":1000,"Y":1000}
+        all_res[loopset[1] + 2] = {"A":0,"C":0,"D":0,"E":0,"F":0,"G":0,"H":0,"I":0,"K":0,"L":0,"M":0,"N":0,"P":0,"Q":0,"R":0,"S":0,"T":0,"V":0,"W":0,"Y":0}
+
+def get_dssp(pdb_file):
+    import pyrosetta 
+    pyrosetta.init('-out:file:output_virtual true')
+    pose = pyrosetta.pose_from_file(pdb_file)
+    struct_from_pose = pyrosetta.rosetta.core.scoring.dssp.Dssp(pose)
+    dssp_secstruct =struct_from_pose.get_dssp_secstruct()
+    print(dssp_secstruct)
+    return dssp_secstruct
 
 
-def make_dataframe(all_res,fasta_name):
-    dataframe = pd.DataFrame(all_res)
-    heatmap = sns.heatmap(dataframe, cmap="YlGnBu", xticklabels = 2)
-    heatmap.set_xticklabels(heatmap.get_xticklabels(), rotation=90)
-    fig = heatmap.get_figure()
+
+def make_empty_dictionaries():
+    two_res_loops = {}
+    three_res_loops = {}
+    four_res_loops = {}
+    for i in range(-2, 5):
+        if i < 3:
+            two_res_loops[i] = {"A":0,"C":0,"D":0,"E":0,"F":0,"G":0,"H":0,"I":0,"K":0,"L":0,"M":0,"N":0,"P":0,"Q":0,"R":0,"S":0,"T":0,"V":0,"W":0,"Y":0}
+            three_res_loops[i] = {"A":0,"C":0,"D":0,"E":0,"F":0,"G":0,"H":0,"I":0,"K":0,"L":0,"M":0,"N":0,"P":0,"Q":0,"R":0,"S":0,"T":0,"V":0,"W":0,"Y":0}
+            four_res_loops[i] = {"A":0,"C":0,"D":0,"E":0,"F":0,"G":0,"H":0,"I":0,"K":0,"L":0,"M":0,"N":0,"P":0,"Q":0,"R":0,"S":0,"T":0,"V":0,"W":0,"Y":0}
+        elif i < 4:
+            three_res_loops[i] = {"A":0,"C":0,"D":0,"E":0,"F":0,"G":0,"H":0,"I":0,"K":0,"L":0,"M":0,"N":0,"P":0,"Q":0,"R":0,"S":0,"T":0,"V":0,"W":0,"Y":0}
+            four_res_loops[i] = {"A":0,"C":0,"D":0,"E":0,"F":0,"G":0,"H":0,"I":0,"K":0,"L":0,"M":0,"N":0,"P":0,"Q":0,"R":0,"S":0,"T":0,"V":0,"W":0,"Y":0}
+        else:
+            four_res_loops[i] = {"A":0,"C":0,"D":0,"E":0,"F":0,"G":0,"H":0,"I":0,"K":0,"L":0,"M":0,"N":0,"P":0,"Q":0,"R":0,"S":0,"T":0,"V":0,"W":0,"Y":0}
+    dicts = (two_res_loops, three_res_loops, four_res_loops)
+    return dicts 
+
+def check_loop_length(start,end,loops):
+    if end - start == 1: #two residue loops
+        loops[0].append((start,end))
+    if end - start == 2: #three residue loops
+        loops[1].append((start,end))
+    if end - start == 3: #four residue loops
+        loops[2].append((start,end))
+
+#search secondary structure 
+def sort_loops(dssp_secstruct):
+    in_loop = False
+    structure = False
+    start_position = 0
+    end_position = 0
+    loops = [[],[],[]]
+    for i, residue_secstruct in enumerate(dssp_secstruct):
+        if residue_secstruct != 'L' and not in_loop:
+            structure = True
+            continue
+        elif residue_secstruct == 'L' and not in_loop and structure:
+            start_position = i 
+            in_loop = True
+            structure = False
+        elif residue_secstruct == 'L' and in_loop:
+            end_position = i  # include structured residues likely part of the beta bulge
+        elif residue_secstruct != 'L' and in_loop:
+            check_loop_length(start_position,end_position, loops)
+            in_loop = False
+            structure = True
+    return loops
+
+def compare_loop_position(fasta_name, loops, dicts):
+    fasta = open(fasta_name, "r")
+    for line in fasta.readlines():
+        if line != [] and line[0] != '>':
+            for i,loop_length in enumerate(loops): #iterates through 2,3, and 4 residue loopsets
+                for loopset in loop_length: #gets each (start,end) set in 
+                    position = -2
+                    if loopset[0] - 2 >= 0 and loopset[1] + 2 < len(line):
+                        for j in range(loopset[0] - 2, loopset[1] + 2):
+                            # print (line[j])
+                            # print(position)
+                            # print (i)
+                            # print(dicts[i][position])
+                            if line[j] in dicts[i][position]:
+                                dicts[i][position][line[j]] += 1
+                            position += 1
+
+
+def make_plots(dicts):
+    for i, residue_count_dictionary in enumerate(dicts):
+        name = str(i+2) + "_residue_loop"
+        make_dataframe(residue_count_dictionary, name)
+
+def make_dataframe(reside_counts,fasta_name):
+    # dataframe = pd.DataFrame(reside_counts)
+    # heatmap = sns.heatmap(dataframe, cbar = False, robust = True, annot = True)
+    # #heatmap = sns.heatmap(dataframe, cmap="YlGnBu")
+    # #heatmap.set_xticklabels(heatmap.get_xticklabels(), rotation=90, xticklabels = 2)
+    # fig = heatmap.get_figure()
+    # plot_name = clean_file_name(fasta_name) + ".png"
+    # fig.savefig(plot_name)
+
+    plt.figure()
+    dataframe = pd.DataFrame(reside_counts)
+    heatmap = sns.heatmap(dataframe, robust = True)
     plot_name = clean_file_name(fasta_name) + ".png"
-    fig.savefig(plot_name)
-    return dataframe 
+    plt.savefig(plot_name)
+     
             
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Takes in any number of pdbs and searches through to find a symmetric metal site based on constraints in this file.")
-    parser.add_argument('PDBS', type=str, nargs=1, help="pdbs to be searched through. Can be /path/to/files/*.pdb or /path/to/your_file.pdb or your.pdb etc")
-    parser.add_argument('Fasta', type=str, nargs=1, help="fasta file of aligned proteins to compare")
+    parser = argparse.ArgumentParser(description="Takes in a list of pdb and fasta alignment files, uses the pdb secondary structure to get 2,3, and 4 resiue loop information from the alignment files.")
+    parser.add_argument('FILES', type=str, nargs=1, help="file with sets of 'pdb_file_name fasta_file_name' on each line")
+    parser.add_argument('-p', type=str, nargs=1, help="pdbs to be searched through. Can be /path/to/files/*.pdb or /path/to/your_file.pdb or your.pdb etc")
+    parser.add_argument('-f', type=str, nargs=1, help="fasta file of aligned proteins to compare")
     parser.add_argument('-o','--out', type=str, nargs=1, default=[""], help="prefix for the output file")
                     
     args = parser.parse_args()
-    input_files=args.PDBS[0] #name of PDB to extract the sequence from
+    input_file_name = args.FILES[0]
+    if args.p != None: pdb = args.p[0] #name of PDB to extract the sequence from
     tag = args.out[0] #name of the output pdb
 
-                                    
-    for i, pdb_file in enumerate(glob.glob(input_files)):
-        dssp_string = get_dssp(pdb_file)
-        # dssp_string = "HLLLLLLLLH"
-        loops = get_loops(dssp_string)
-        print (loops)
-        all_res = get_all_res(loops)
-        # print ("all_res[4]")
-        # print (all_res[4])
-        # print ("all_res[4][A]")
-        # print (all_res[4]['A'])
-        #print(all_res.values())
-        compare(args.Fasta[0],all_res, loops)
-        # print ("all_res[4]")
-        # print (all_res[4])
-        # print ("all_res[4][A]")
-        # print (all_res[4]['A'])
-        # print ("all_res[5]")
-        # print (all_res[5])
-        # print ("all_res[5][A]")
-        # print (all_res[5]['A'])
-        make_dataframe(all_res, args.Fasta[0])
-        # make_heatmap(all_res)
+    #make alignment files of 2,3, and 4 residue loops
+    dicts = make_empty_dictionaries()
+    input_file = open(input_file_name, "r")
+    for line in input_file.readlines():
+        pdb_fasta = re.split(" |\n", line) #split line into pdb_name and fasta_name
+        print(pdb_fasta)
+        dssp_string = get_dssp(pdb_fasta[0]) #get string of secondary structure from pdb
+        #dssp_string = pdb_fasta[0]
+        loops = sort_loops(dssp_string)     #use 2nd struct string to determine whhere 2, 3, and 4 res loops
+        print(loops)
+        compare_loop_position(pdb_fasta[1], loops, dicts)
+        make_plots(dicts)
+
+    # for i, pdb_file in enumerate(glob.glob(pdb)):
+    #     dssp_string = get_dssp(pdb_file)
+
+    #     #single alignment file
+    #     loops = get_loops(dssp_string)
+    #     print (loops)
+    #     all_res = get_all_res(loops)
+    #     compare(args.Fasta[0],all_res, loops)
+    #     make_dataframe(all_res, args.f[0])
